@@ -7,27 +7,31 @@ class MoviesController < ApplicationController
   end
 
   def index
+    @all_ratings = Movie.ratings_array
+    @ratings = Hash.new {|h,k| h[k] = 1}
+
     if params.has_key?(:ratings)
-        @ratings = params[:ratings].keys
-        @movies = []
-        @ratings.each do |r|
-            @movies += Movie.find_all_by_rating(r)
-            flash[:"#{r}"] = true
-        end
+        @ratings = params[:ratings]
+        session[:ratings] = params[:ratings]
+    elsif session.has_key?(:ratings)
+        redirect_to movies_path(:sort => session[:sort], :ratings => session[:ratings])
     else
-        @movies = Movie.all
+        @all_ratings.each {|r| @ratings[r] }
     end
 
-    @all_ratings = Movie.ratings_array
-    @title_hilite = ''
-    @date_hilite = ''
+    @movies = []
+    @ratings.each_key do |r|
+        @movies += Movie.find_all_by_rating(r)
+    end
 
+    @hilite = Hash.new {|h,k| h[k] = ''}
     if params[:sort] == 'title'
         @movies = @movies.sort {|a,b| a.title <=> b.title}
-        @title_hilite = 'hilite'
-    elsif params[:sort] == 'date'
+        @hilite[:title] = 'hilite'
+        session[:sort] = params[:sort]
+    elsif params[:sort] == 'release_date'
         @movies = @movies.sort {|a,b| a.release_date <=> b.release_date}
-        @date_hilite = 'hilite'
+        @hilite[:release_date] = 'hilite'
     end
   end
 
